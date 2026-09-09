@@ -167,7 +167,8 @@ export async function loadEnvironment() {
     .limit(1)
   const [lo, hi] = await Promise.all([pick(true), pick(false)])
 
-  // ③ 同じ盤に相乗りしている機械の名前(どこを測っているかを画面に出すため)
+  // ③ 同じ盤に相乗りしている機械の表示名(どこを測っているかを画面に出すため)。
+  //    カードと同じ日本語の名前にそろえる(label が無いときだけファームの名前)
   const mates = await supabase
     .from('readings')
     .select('machine_id')
@@ -176,8 +177,8 @@ export async function loadEnvironment() {
   const ids = [...new Set((mates.data || []).map(x => x.machine_id))]
   let names = []
   if (ids.length) {
-    const m = await supabase.from('machines').select('name').in('id', ids).order('name')
-    names = (m.data || []).map(x => x.name)
+    const m = await supabase.from('machines').select('name, label').in('id', ids).order('name')
+    names = (m.data || []).map(x => x.label || x.name)
   }
 
   return {
