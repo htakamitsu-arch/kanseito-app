@@ -6,6 +6,7 @@
 //   loadDailyReport(day) … 画面②「日報」用。その業務日の行(機械ぶん + 全社)を返す
 //   loadCardDates()      … 画面③「カルテ」用。カルテのある日を新しい順に返す
 //   loadCards(day)       … 画面③「カルテ」用。その日の9台ぶん(1台24コマ)を返す
+//   loadEnvironment()    … 画面①の帯用。工場の温湿度(いま + 今日の最高最低)。無ければ null
 //
 // 偽データモードでは src/mock/*.json を返し、本物モードでは Supabase を読む。
 // 本物モードで読む表とビュー(差分案_鍵とRLS_2026-09-09.md で作るもの):
@@ -19,6 +20,7 @@ import mockMachines from '../mock/machines.json'
 import mockLatest from '../mock/readings_latest.json'
 import mockDaily from '../mock/daily_reports.json'
 import mockCards from '../mock/machine_cards.json'
+import mockEnv from '../mock/environment.json'
 
 // 画面①: 機械ごとに「機械情報 + 最新の測定1行」を並べて返す
 export async function loadNowStatus() {
@@ -128,4 +130,81 @@ export async function loadCards(day) {
     rows = data || []
   }
   return rows.slice().sort((a, b) => a.machine_name.localeCompare(b.machine_name))
+}
+
+// -------------------------------------------------- 画面①の帯「工場の環境」
+
+// 温湿度センサー(SHT31)はユニットに1個しか付いていない。2026-09-10 の実測では
+// 3号機の盤だけが持っていて、その盤が見ている4台(zv5400 / shizuoka2 / mb46 / kensaku)に
+// 同じ値が配られている。だから「機械ごとの温度」ではなく「工場の1か所の温度」として出す。
+// 5号機(okk / mu4000v)・4号機(dnm650 / u32k)は7日で0件 = センサーなし。
+//
+// 返すもの: { measured_at, temp_c, hum_pct, today_min_c, today_max_c, machine_names } / 無ければ null
+// 業務日は日報・カルテと同じ「7時始まり」。7時前に見たときは前日7時からを「今日」とする。
+export async function loadEnvironment() {
+  if (IS_MOCK) return mockEnvironment()
+
+  // ① いちばん新しい「温度が入っている行」。どの機械かはここで決まる(機械を決め打ちしない)
+  const latest = await supabase
+    .from('readings')
+    .select('machine_id, measured_at, temp_c, hum_pct')
+    .not('temp_c', 'is', null)
+    .order('measured_at', { ascending: false })
+    .limit(1)
+  if (latest.error) throw new Error('温湿度を読めません: ' + latest.error.message)
+  const row = (latest.data || [])[0]
+  if (!row) return null                       // センサーが1台も無い / まだ届いていない
+
+  // ② 今日(業務日)の最高と最低。1日ぶんを全部持ってこないで、並べ替えて1行ずつ取る
+  const from = businessDayStartISO()
+  const pick = (asc) => supabase
+    .from('readings')
+    .select('temp_c')
+    .eq('machine_id', row.machine_id)
+    .gte('measured_at', from)
+    .not('temp_c', 'is', null)
+    .order('temp_c', { ascending: asc })
+    .limit(1)
+  const [lo, hi] = await Promise.all([pick(true), pick(false)])
+
+  // ③ 同じ盤に相乗りしている機械の名前(どこを測っているかを画面に出すため)
+  const mates = await supabase
+    .from('readings')
+    .select('machine_id')
+    .gte('measured_at', new Date(new Date(row.measured_at).getTime() - 5 * 60000).toISOString())
+    .not('temp_c', 'is', null)
+  const ids = [...new Set((mates.data || []).map(x => x.machine_id))]
+  let names = []
+  if (ids.length) {
+    const m = await supabase.from('machines').select('name').in('id', ids).order('name')
+    names = (m.data || []).map(x => x.name)
+  }
+
+  return {
+    measured_at: row.measured_at,
+    temp_c: row.temp_c,
+    hum_pct: row.hum_pct,
+    today_min_c: lo.error ? null : (lo.data || [])[0]?.temp_c ?? null,
+    today_max_c: hi.error ? null : (hi.data || [])[0]?.temp_c ?? null,
+    machine_names: names,
+  }
+}
+
+// 業務日(7時始まり)の開始時刻を ISO で返す。7時前なら前日の7時
+function businessDayStartISO() {
+  const d = new Date()
+  if (d.getHours() < 7) d.setDate(d.getDate() - 1)
+  d.setHours(7, 0, 0, 0)
+  return d.toISOString()
+}
+
+function mockEnvironment() {
+  return {
+    measured_at: new Date(Date.now() - mockEnv.minutes_ago * 60000).toISOString(),
+    temp_c: mockEnv.temp_c,
+    hum_pct: mockEnv.hum_pct,
+    today_min_c: mockEnv.today_min_c,
+    today_max_c: mockEnv.today_max_c,
+    machine_names: mockEnv.machine_names,
+  }
 }

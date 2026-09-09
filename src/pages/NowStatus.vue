@@ -12,10 +12,11 @@
 ============================================================================ -->
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { loadNowStatus } from '../lib/data.js'
+import { loadNowStatus, loadEnvironment } from '../lib/data.js'
 import { stateOf, isStale, agoText, ampText, clockText, STALE_MIN } from '../lib/status.js'
 
 const rows = ref([])          // [{ machine, latest }]
+const env = ref(null)         // 工場の温湿度(センサーが無ければ null のまま)
 const error = ref('')
 const updatedAt = ref(null)   // この画面が最後に読み直した時刻
 const now = ref(Date.now())   // 「N分前」の計算に使う現在時刻(1分ごとに進める)
@@ -23,6 +24,8 @@ const now = ref(Date.now())   // 「N分前」の計算に使う現在時刻(1�
 async function reload() {
   try {
     rows.value = await loadNowStatus()
+    // 温湿度は「あれば出す」おまけ。読めなくても機械の一覧は必ず出す
+    try { env.value = await loadEnvironment() } catch (e) { env.value = null }
     error.value = ''
     updatedAt.value = new Date()
   } catch (e) {
@@ -47,6 +50,26 @@ function staleCount() { return rows.value.filter(r => isStale(r.latest, now.valu
   </h2>
 
   <div class="error" v-if="error">読めませんでした: {{ error }}</div>
+
+  <!-- 工場の環境。センサーはユニットに1個なので、機械ごとではなく1か所として出す -->
+  <div class="env" v-if="env">
+    <div class="envmain">
+      <span class="v">{{ Number(env.temp_c).toFixed(1) }}<small>℃</small></span>
+      <span class="v">{{ Math.round(env.hum_pct) }}<small>%</small></span>
+    </div>
+    <div class="envsub">
+      <span v-if="env.today_max_c !== null && env.today_min_c !== null">
+        今日 最高 {{ Number(env.today_max_c).toFixed(1) }}℃ / 最低 {{ Number(env.today_min_c).toFixed(1) }}℃
+      </span>
+      <span>{{ agoText(env, now) }}({{ clockText(env.measured_at) }})</span>
+    </div>
+    <div class="envnote">
+      測っているのは<b>工場の1か所だけ</b>です。温湿度センサーは盤に1個で、
+      <template v-if="env.machine_names.length">{{ env.machine_names.join(' / ') }}</template>
+      <template v-else>1つの盤</template>
+      が同じ値を使っています。機械ごとの温度ではありません。
+    </div>
+  </div>
 
   <div class="grid">
     <div v-for="r in rows" :key="r.machine.id" class="card" :class="{ stale: isStale(r.latest, now) }">

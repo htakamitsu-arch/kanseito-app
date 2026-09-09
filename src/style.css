@@ -131,3 +131,13 @@ table.karte .blk { width: 20px; height: 22px; border-radius: 3px; margin: 0 auto
 .k-off   { background: var(--k-off); }
 .k-none  { background: #fff; border: 1px dashed var(--line); }
 .legend .k-cut, .legend .k-warm { color: #fff; }
+
+/* 工場の環境(画面①の帯)。機械カードとは別物だと分かるように、色も形も変える。
+   温湿度センサーは盤に1個しか無いので「機械ごと」ではなく「工場の1か所」として出す。 */
+.env { background: var(--card); border: 1px solid var(--line); border-left: 6px solid #38bdf8;
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
+.env .envmain { display: flex; align-items: baseline; gap: 22px; }
+.env .envmain .v { font-size: 30px; font-weight: 700; line-height: 1.1; }
+.env .envmain .v small { font-size: 15px; color: var(--muted); margin-left: 3px; font-weight: 400; }
+.env .envsub { margin-top: 2px; font-size: 13px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+.env .envnote { margin-top: 6px; font-size: 12px; color: var(--muted); line-height: 1.5; }
