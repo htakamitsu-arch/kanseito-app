@@ -84,7 +84,7 @@ function cutHours(r) { return (r.states || []).filter(s => s === '加工').lengt
 
   <!-- 日付えらび。押した日の帯に入れ替わる -->
   <div class="daypick" v-if="days.length">
-    <button v-for="d in days.slice(0, 21)" :key="d" :class="{ on: d === day }" @click="pick(d)">
+    <button v-for="d in days" :key="d" :class="{ on: d === day }" @click="pick(d)">
       {{ d.slice(5).replace('-', '/') }}
     </button>
   </div>
