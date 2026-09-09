@@ -99,3 +99,35 @@ table.report .bar { width: 56px; height: 6px; border-radius: 3px; background: va
 table.report .bar i { display: block; height: 100%; background: var(--high); }
 table.report .barnum { font-variant-numeric: tabular-nums; }
 .foot .notline { margin-bottom: 4px; }
+
+/* ---- 画面③「カルテ」の帯 ----------------------------------------------
+   1コマ=1時間。左が朝7時、右端が翌朝6時。色は4つ(2026-09-09 高満氏決定)。
+   加工=青。画面①の「高負荷=緑」とは分類が別なので、色を揃えていない。       */
+:root {
+  --k-cut:   #2563eb;   /* 加工 */
+  --k-setup: #facc15;   /* 段取り(画面①の通電と同じ黄) */
+  --k-warm:  #f97316;   /* 暖機 */
+  --k-off:   #d1d5db;   /* 電源OFF */
+}
+table.karte { border-collapse: collapse; width: 100%; font-size: 13px; white-space: nowrap; }
+table.karte th { font-size: 11px; color: var(--muted); font-weight: 600; background: #f9fafb;
+                 padding: 6px 2px; text-align: center; border-bottom: 1px solid var(--line); }
+table.karte td { padding: 4px 2px; border-bottom: 1px solid var(--line); text-align: center; }
+table.karte .left { text-align: left; padding-left: 10px; padding-right: 10px; }
+table.karte .name { font-weight: 700; position: sticky; left: 0; background: var(--card); z-index: 1; }
+table.karte thead .left { position: sticky; left: 0; background: #f9fafb; z-index: 2; }
+table.karte .hcol { min-width: 20px; }
+table.karte .cell { padding: 4px 1px; }
+table.karte .num { text-align: right; padding-right: 8px; font-variant-numeric: tabular-nums; }
+table.karte .num small { font-size: 10px; color: var(--muted); margin-left: 1px; }
+table.karte .strong { font-weight: 700; font-size: 15px; }
+table.karte .mark { color: var(--alert); margin-left: 4px; }
+table.karte .up { color: #15803d; }
+table.karte .down { color: #b45309; }
+table.karte .blk { width: 20px; height: 22px; border-radius: 3px; margin: 0 auto; }
+.k-cut   { background: var(--k-cut); }
+.k-setup { background: var(--k-setup); }
+.k-warm  { background: var(--k-warm); }
+.k-off   { background: var(--k-off); }
+.k-none  { background: #fff; border: 1px dashed var(--line); }
+.legend .k-cut, .legend .k-warm { color: #fff; }

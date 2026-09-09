@@ -4,17 +4,21 @@
 //   loadNowStatus()      … 画面①「今の状態」用。9台ぶんの { machine, latest } を返す
 //   loadReportDates()    … 画面②「日報」用。日報のある業務日を新しい順に返す
 //   loadDailyReport(day) … 画面②「日報」用。その業務日の行(機械ぶん + 全社)を返す
+//   loadCardDates()      … 画面③「カルテ」用。カルテのある日を新しい順に返す
+//   loadCards(day)       … 画面③「カルテ」用。その日の9台ぶん(1台24コマ)を返す
 //
 // 偽データモードでは src/mock/*.json を返し、本物モードでは Supabase を読む。
 // 本物モードで読む表とビュー(差分案_鍵とRLS_2026-09-09.md で作るもの):
 //   machines           … 機械の名前・表示名・LOW(low_a)
 //   v_latest_readings  … 機械ごとの最新1行(readings から distinct on で作ったビュー)
 //   daily_reports      … 日報(GAS の「日報」タブ17列を GAS が写す。差分案_画面2日報_2026-09-09.md)
+//   machine_cards      … カルテ(GAS の「機械カルテ」タブを GAS が写す。7時〜翌6時の24コマ)
 // ============================================================================
 import { supabase, IS_MOCK } from './supabase.js'
 import mockMachines from '../mock/machines.json'
 import mockLatest from '../mock/readings_latest.json'
 import mockDaily from '../mock/daily_reports.json'
+import mockCards from '../mock/machine_cards.json'
 
 // 画面①: 機械ごとに「機械情報 + 最新の測定1行」を並べて返す
 export async function loadNowStatus() {
@@ -93,4 +97,35 @@ function sortReportRows(a, b) {
   const gb = b.machine_name.startsWith('全社') ? 1 : 0
   if (ga !== gb) return ga - gb
   return a.machine_name.localeCompare(b.machine_name)
+}
+
+// ---------------------------------------------------------------- 画面③「カルテ」
+
+// カルテのある日を新しい順に返す(最大60日)
+export async function loadCardDates() {
+  if (IS_MOCK) return [...new Set(mockCards.map(r => r.card_date))].sort().reverse()
+
+  const { data, error } = await supabase
+    .from('machine_cards')
+    .select('card_date')
+    .order('card_date', { ascending: false })
+    .limit(800)
+  if (error) throw new Error('machine_cards を読めません: ' + error.message)
+  return [...new Set((data || []).map(r => r.card_date))].slice(0, 60)
+}
+
+// その日のカルテを機械の名前順で返す(1行 = 1台・24コマ)
+export async function loadCards(day) {
+  let rows
+  if (IS_MOCK) {
+    rows = mockCards.filter(r => r.card_date === day)
+  } else {
+    const { data, error } = await supabase
+      .from('machine_cards')
+      .select('*')
+      .eq('card_date', day)
+    if (error) throw new Error('machine_cards を読めません: ' + error.message)
+    rows = data || []
+  }
+  return rows.slice().sort((a, b) => a.machine_name.localeCompare(b.machine_name))
 }
