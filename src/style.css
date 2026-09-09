@@ -69,3 +69,33 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
 .login .note { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
 .error { background: #fee2e2; color: #991b1b; padding: 10px 12px; border-radius: 8px; font-size: 14px; margin: 10px 0; }
 .placeholder { background: var(--card); border: 1px dashed #9ca3af; border-radius: 12px; padding: 24px; color: var(--muted); line-height: 1.8; }
+
+/* ---- 画面②「日報」の表 ------------------------------------------------
+   スマホでは横に長いので、表だけ横スクロールさせる(ページ全体は横に動かさない)。
+   機械の列は左に貼り付けて、横に動かしても機械名が見えるようにする。            */
+.daypick { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.daypick button { font-size: 13px; padding: 6px 10px; border-radius: 8px; cursor: pointer;
+                  border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+.daypick button.on { background: var(--head); color: #fff; border-color: var(--head); }
+
+.tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+table.report { border-collapse: collapse; width: 100%; font-size: 14px; white-space: nowrap; }
+table.report th, table.report td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; }
+table.report th { font-size: 12px; color: var(--muted); font-weight: 600; background: #f9fafb; position: sticky; top: 0; }
+table.report th small { font-weight: 400; margin-left: 2px; }
+table.report .left { text-align: left; }
+table.report .name { font-weight: 700; position: sticky; left: 0; background: var(--card); }
+table.report thead .left:first-child { position: sticky; left: 0; background: #f9fafb; z-index: 1; }
+table.report .mark { color: var(--alert); margin-left: 4px; }
+table.report .strong { font-weight: 700; font-size: 16px; }
+table.report .small { font-size: 12px; color: var(--muted); }
+table.report tr.total td { font-weight: 700; background: #f9fafb; border-top: 2px solid var(--line); }
+table.report tr.total .name { background: #f9fafb; }
+table.report .up { color: #15803d; }
+table.report .down { color: #b45309; }
+table.report .warn { color: var(--alert); font-weight: 700; }
+table.report .bar { width: 56px; height: 6px; border-radius: 3px; background: var(--line); display: inline-block;
+                    vertical-align: middle; overflow: hidden; margin-right: 6px; }
+table.report .bar i { display: block; height: 100%; background: var(--high); }
+table.report .barnum { font-variant-numeric: tabular-nums; }
+.foot .notline { margin-bottom: 4px; }
