@@ -1,0 +1,71 @@
+/* ============================================================================
+   全画面共通の見た目。色の意味はここで1か所に決める。
+   状態の色: 電源OFF=灰 / 通電(低負荷)=黄 / 高負荷=緑 / 不明・データなし=薄灰
+   無通信(11分以上)= 赤い枠
+   ============================================================================ */
+:root {
+  --bg: #f3f4f6;          /* 画面の下地 */
+  --card: #ffffff;        /* カードの白 */
+  --ink: #111827;         /* 文字 */
+  --muted: #6b7280;       /* 薄い文字 */
+  --line: #e5e7eb;        /* 枠線 */
+  --off: #9ca3af;         /* 電源OFF */
+  --low: #facc15;         /* 通電(低負荷) */
+  --high: #22c55e;        /* 高負荷 */
+  --none: #d1d5db;        /* 不明・データなし */
+  --alert: #dc2626;       /* 無通信の赤 */
+  --head: #1f2937;        /* 上の帯 */
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif; }
+
+/* 上の帯(タイトルと画面切替) */
+.topbar { background: var(--head); color: #fff; padding: 10px 14px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.topbar .title { font-weight: 700; font-size: 18px; letter-spacing: .08em; }
+.topbar nav a { color: #d1d5db; text-decoration: none; margin-right: 12px; font-size: 14px; padding: 4px 6px; border-radius: 6px; }
+.topbar nav a.active { background: #374151; color: #fff; }
+.topbar .spacer { flex: 1; }
+.topbar .who { font-size: 12px; color: #d1d5db; }
+.topbar button { background: #374151; color: #fff; border: 0; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+
+/* 偽データモードの目印(本物と間違えないため。必ず出す) */
+.mockbar { background: #fde68a; color: #78350f; font-size: 13px; padding: 6px 14px; }
+
+.page { padding: 12px; max-width: 1200px; margin: 0 auto; }
+.page h2 { font-size: 16px; margin: 6px 0 10px; color: var(--muted); font-weight: 600; }
+
+/* 機械カードの並び: スマホ1列 → タブレット2列 → 事務所モニタ3列 */
+.grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 560px)  { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px)  { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* 機械1台のカード */
+.card { background: var(--card); border: 3px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto auto; gap: 4px 10px; }
+.card.stale { border-color: var(--alert); }        /* 11分以上無通信 → 赤枠 */
+.card .name  { grid-column: 1; font-size: 17px; font-weight: 700; }
+.card .code  { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+.card .state { grid-column: 2; grid-row: 1 / span 2; align-self: center;
+  min-width: 84px; text-align: center; padding: 10px 8px; border-radius: 10px; font-weight: 700; font-size: 15px; color: #111; }
+.card .state.off  { background: var(--off);  color: #fff; }
+.card .state.low  { background: var(--low); }
+.card .state.high { background: var(--high); color: #fff; }
+.card .state.none { background: var(--none); color: #374151; }
+.card .amp   { grid-column: 1; font-size: 28px; font-weight: 700; line-height: 1.1; }
+.card .amp small { font-size: 14px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+.card .last  { grid-column: 1 / span 2; font-size: 13px; color: var(--muted); }
+.card.stale .last { color: var(--alert); font-weight: 700; }
+
+/* 画面の下の注記 */
+.foot { margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.legend span { display: inline-block; padding: 2px 8px; border-radius: 6px; margin-right: 6px; font-size: 12px; }
+
+/* ログイン画面 */
+.login { max-width: 420px; margin: 60px auto; background: var(--card); padding: 24px; border-radius: 12px; border: 1px solid var(--line); text-align: center; }
+.login button { font-size: 16px; padding: 12px 18px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; width: 100%; }
+.login .note { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
+.error { background: #fee2e2; color: #991b1b; padding: 10px 12px; border-radius: 8px; font-size: 14px; margin: 10px 0; }
+.placeholder { background: var(--card); border: 1px dashed #9ca3af; border-radius: 12px; padding: 24px; color: var(--muted); line-height: 1.8; }

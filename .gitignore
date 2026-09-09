@@ -1,0 +1,12 @@
+# 部品置き場(npm install で自動で出来る。GitHub には上げない。大きい)
+node_modules/
+# 組み立て結果(GitHub Actions が作るので上げない)
+dist/
+# ★鍵。絶対に上げない(.env.example だけは見本なので上げてよい)
+.env
+.env.local
+.env.*.local
+# 作業の残骸
+*.log
+.DS_Store
+Thumbs.db
