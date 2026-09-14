@@ -7,6 +7,9 @@
 //   loadCardDates()      … 画面③「カルテ」用。カルテのある日を新しい順に返す
 //   loadCards(day)       … 画面③「カルテ」用。その日の9台ぶん(1台24コマ)を返す
 //   loadEnvironment()    … 画面①の帯用。工場の温湿度(いま + 今日の最高最低)。無ければ null
+//   sendFeedback(f)      … 画面③「実際は?」用。1コマぶんの答えを1行送る(2026-09-14 W5)
+//   loadFeedbackMarks(day)… 画面③用。その日の「答え済みのコマ」を返す(印を出すため)
+//   recordPageView(page) … 画面を開いた記録を1行送る。失敗しても何も投げない(画面は必ず出す)
 //
 // 偽データモードでは src/mock/*.json を返し、本物モードでは Supabase を読む。
 // 本物モードで読む表とビュー(差分案_鍵とRLS_2026-09-09.md で作るもの):
@@ -14,6 +17,10 @@
 //   v_latest_readings  … 機械ごとの最新1行(readings から distinct on で作ったビュー)
 //   daily_reports      … 日報(GAS の「日報」タブ17列を GAS が写す。差分案_画面2日報_2026-09-09.md)
 //   machine_cards      … カルテ(GAS の「機械カルテ」タブを GAS が写す。7時〜翌6時の24コマ)
+//   feedback           … 「実際は?」の答え(画面から insert。実際は_と_閲覧_2026-09-14.sql)
+//   page_views         … 画面を開いた記録(画面から insert。同上)
+//   tenant_users       … 自分がどの会社か(tenant_id を1つ取るためだけに読む)
+// 偽データモードでは feedback と page_views をブラウザの localStorage に貯める(Supabase に送らない)。
 // ============================================================================
 import { supabase, IS_MOCK } from './supabase.js'
 import mockMachines from '../mock/machines.json'
@@ -208,4 +215,110 @@ function mockEnvironment() {
     today_max_c: mockEnv.today_max_c,
     machine_names: mockEnv.machine_names,
   }
+}
+
+// ---------------------------------------------------------------- 画面③「実際は?」(W5・2026-09-14)
+
+// 5択。画面もこの並びで出す。ここ以外の言葉は送らない(SQL の check と同じ並び)
+export const ACTUAL_CHOICES = ['加工', '段取り', '暖機', '電源OFF', '分からない']
+
+// 偽データモードの置き場(ブラウザの localStorage の鍵)。本物には一切送らない
+const LS_FEEDBACK = 'kanseito_mock_feedback'
+const LS_VIEWS    = 'kanseito_mock_page_views'
+
+// 1コマぶんの答えを1行送る。
+//   f = { machine_name, card_date, hour, shown_state, actual_state }
+//     hour        = そのコマの時刻(7〜23, 0〜6)。card_date と hour でコマが1つに決まる
+//     shown_state = 画面がそのコマに出していた判定('加工' など。未記入は '')
+//     actual_state= 押された5択のどれか
+// 送れなかったら例外を投げる(画面は「送れませんでした」と出す。黙って失敗しない)
+export async function sendFeedback(f) {
+  if (!ACTUAL_CHOICES.includes(f.actual_state)) throw new Error('5択にない答えです: ' + f.actual_state)
+  const row = {
+    machine_name: f.machine_name,
+    card_date:    f.card_date,
+    hour:         f.hour,
+    shown_state:  f.shown_state || null,
+    actual_state: f.actual_state,
+  }
+  if (IS_MOCK) {
+    const all = lsRead(LS_FEEDBACK)
+    all.push({ ...row, user_email: 'mock@example', created_at: new Date().toISOString() })
+    lsWrite(LS_FEEDBACK, all)
+    return
+  }
+  const who = await whoAmI()
+  const { error } = await supabase.from('feedback').insert({ ...row, tenant_id: who.tenant_id, user_email: who.email })
+  if (error) throw new Error('feedback に書けません: ' + error.message)
+}
+
+// その日の答え済みのコマを返す。{ 'mb46|10': '段取り', … }(同じコマに何度も答えたら最後の答え)
+// 読めなかったら空を返す(印が出ないだけ。カルテ本体は必ず出す)
+export async function loadFeedbackMarks(day) {
+  let rows = []
+  try {
+    if (IS_MOCK) {
+      rows = lsRead(LS_FEEDBACK).filter(r => r.card_date === day)
+    } else {
+      const { data, error } = await supabase
+        .from('feedback')
+        .select('machine_name, hour, actual_state, created_at')
+        .eq('card_date', day)
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      rows = data || []
+    }
+  } catch (e) {
+    console.warn('feedback を読めませんでした(印は出しません):', e.message || e)
+    return {}
+  }
+  const marks = {}
+  for (const r of rows) marks[r.machine_name + '|' + r.hour] = r.actual_state   // 後の行が前の行を上書き = 最後の答え
+  return marks
+}
+
+// ---------------------------------------------------------------- 閲覧回数(W5・2026-09-14)
+
+// 画面を開いた記録を1行送る(page = '/now' / '/daily' / '/karte')。
+// ★何があっても例外を投げない・待たなくてよい。App.vue は結果を見ずに画面を出す
+export async function recordPageView(page) {
+  try {
+    if (IS_MOCK) {
+      const all = lsRead(LS_VIEWS)
+      all.push({ page, user_email: 'mock@example', created_at: new Date().toISOString() })
+      lsWrite(LS_VIEWS, all.slice(-500))   // 偽データは最新500件だけ残す(localStorage を太らせない)
+      return
+    }
+    if (!supabase) return
+    const who = await whoAmI()
+    const { error } = await supabase.from('page_views').insert({ page, tenant_id: who.tenant_id, user_email: who.email })
+    if (error) console.warn('page_views に書けませんでした(画面には影響なし):', error.message)
+  } catch (e) {
+    console.warn('page_views に書けませんでした(画面には影響なし):', e.message || e)
+  }
+}
+
+// ---------------------------------------------------------------- 内部で使う小さな部品
+
+// 「自分は誰で、どの会社か」。tenant_users の自分の行(RLS「自分の行だけ」)から tenant_id を1回だけ取り、以後は覚えておく
+let _who = null
+async function whoAmI() {
+  if (_who) return _who
+  const { data: s } = await supabase.auth.getSession()
+  const u = s?.session?.user
+  if (!u) throw new Error('ログインしていません')
+  const { data, error } = await supabase.from('tenant_users').select('tenant_id').limit(1)
+  if (error) throw new Error('tenant_users を読めません: ' + error.message)
+  const t = (data || [])[0]?.tenant_id
+  if (!t) throw new Error('tenant_users に自分の行がありません(会社が決まっていない)')
+  _who = { user_id: u.id, email: u.email || '', tenant_id: t }
+  return _who
+}
+
+// localStorage の読み書き(偽データモード専用)。壊れていても画面を止めない
+function lsRead(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] }
+}
+function lsWrite(key, arr) {
+  try { localStorage.setItem(key, JSON.stringify(arr)) } catch (e) { console.warn('localStorage に書けません:', e.message || e) }
 }

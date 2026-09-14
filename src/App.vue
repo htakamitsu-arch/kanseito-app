@@ -10,8 +10,9 @@
   「#」方式にしてあるのは、GitHub Pages で URL を直打ちしても 404 にならないため。
 ============================================================================ -->
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { supabase, IS_MOCK, configProblem } from './lib/supabase.js'
+import { recordPageView } from './lib/data.js'
 import NowStatus from './pages/NowStatus.vue'
 import DailyReport from './pages/DailyReport.vue'
 import MachineKarte from './pages/MachineKarte.vue'
@@ -48,6 +49,14 @@ onMounted(async () => {
 async function logout() {
   if (supabase) await supabase.auth.signOut()
 }
+
+// ---- 閲覧回数(2026-09-14 W5) ----
+// 画面が実際に出たとき(偽データモード、または ログイン済み)に1行記録する。
+// 結果は待たない・見ない(recordPageView は何があっても投げない)。記録できなくても画面は出る。
+const shown = computed(() => ready.value && !problem && (IS_MOCK || !!user.value))
+watch([route, shown], ([r, ok]) => {
+  if (ok) recordPageView(r)
+}, { immediate: true })
 </script>
 
 <template>
