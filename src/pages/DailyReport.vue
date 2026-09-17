@@ -86,10 +86,9 @@ function writtenText(r) {
   </div>
 
   <div class="placeholder" v-if="!loading && !error && rows.length === 0">
-    まだ日報が Supabase に届いていません。<br />
-    数字は毎朝 5:30 に GAS がスプレッドシートの「日報」タブへ書き、5:45 に Supabase へ送ります。<br />
-    その送信(GAS 1ファイル + Supabase の関数1本)は
-    <code>差分案_画面2日報_2026-09-09.md</code> の承認後に入ります。
+    この日の日報はまだ Supabase に届いていません。<br />
+    数字は毎朝 5:30 に GAS がスプレッドシートの「日報」タブへ書き、5:45 ごろ Supabase へ送ります。<br />
+    6:00 を過ぎても出ないときは、スプレッドシートの「日報」タブと「AlertLog」タブを見てください。
   </div>
 
   <div class="tablewrap" v-if="rows.length">
