@@ -173,3 +173,17 @@ table.karte .fb-mark { position: absolute; right: -4px; top: -4px; width: 14px; 
   border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; }
 .fb-note { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
 .thanks { background: #dcfce7; color: #166534; padding: 8px 12px; border-radius: 8px; font-size: 14px; margin: 0 0 10px; }
+
+/* ①「いま確認すること」(2026-09-18 試作・画面①の上) */
+.check { background: var(--card); border: 3px solid var(--alert); border-radius: 12px; padding: 12px 14px; margin: 0 0 14px; }
+.check.none { border-color: #16a34a; }
+.check-h { font-size: 15px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.check.none .check-h { color: #15803d; }
+.check-ok { font-size: 16px; font-weight: 700; color: #15803d; }
+.check-row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line); font-size: 18px; }
+.check-row:first-of-type { border-top: 0; }
+.check-name { font-weight: 700; }
+.check-kind { font-weight: 700; color: #fff; background: var(--alert); border-radius: 6px; padding: 2px 8px; font-size: 15px; }
+.check-row.undecidable .check-kind { background: #b45309; }
+.check-since { font-size: 16px; }
+.check-note { font-size: 13px; color: var(--muted); padding-top: 8px; border-top: 1px dashed var(--line); margin-top: 6px; }

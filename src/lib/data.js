@@ -6,6 +6,7 @@
 //   loadDailyReport(day) … 画面②「日報」用。その業務日の行(機械ぶん + 全社)を返す
 //   loadCardDates()      … 画面③「カルテ」用。カルテのある日を新しい順に返す
 //   loadCards(day)       … 画面③「カルテ」用。その日の9台ぶん(1台24コマ)を返す
+//   loadOffSince(rows)   … 画面①用。電源OFF の機械が「いつから OFF か」(readings の最後に OFF 以外だった行の時刻)。2026-09-18 ①②試作
 //   loadEnvironment()    … 画面①の帯用。工場の温湿度(いま + 今日の最高最低)。無ければ null
 //   sendFeedback(f)      … 画面③「実際は?」用。1コマぶんの答えを1行送る(2026-09-14 W5)
 //   loadFeedbackMarks(day)… 画面③用。その日の「答え済みのコマ」を返す(印を出すため)
@@ -23,6 +24,7 @@
 // 偽データモードでは feedback と page_views をブラウザの localStorage に貯める(Supabase に送らない)。
 // ============================================================================
 import { supabase, IS_MOCK } from './supabase.js'
+import { stateOf } from './status.js'
 import mockMachines from '../mock/machines.json'
 import mockLatest from '../mock/readings_latest.json'
 import mockDaily from '../mock/daily_reports.json'
@@ -46,6 +48,33 @@ export async function loadNowStatus() {
     machine,
     latest: latestOf.get(machine.id) || null,   // まだ1行も無い機械は null
   }))
+}
+
+// 電源OFF の機械について「いつから OFF か」を返す。{ machine_id: iso } 。
+// 本物: readings から「最後に POWER_OFF 以外だった行」を 1 行ずつ引く(9/9 の RLS で直近 31 日は読める)。
+// 見つからなければその機械は入れない(画面は「最終データ N分前」で代用する)。読めなくても投げない。
+export async function loadOffSince(rows) {
+  const out = {}
+  // 対象 = ファームが POWER_OFF の機械 + LOW 未満で電源OFF 扱いの機械(画面の色と同じ決まり)
+  const offs = rows.filter(r => r.latest && stateOf(r.machine, r.latest).cls === 'off')
+  if (IS_MOCK) {
+    const now = Date.now()
+    for (const r of offs) {
+      const m = mockLatest.find(x => x.machine_id === r.machine.id)
+      if (m && m.off_since_minutes_ago != null) out[r.machine.id] = new Date(now - m.off_since_minutes_ago * 60000).toISOString()
+    }
+    return out
+  }
+  await Promise.all(offs.map(async r => {
+    try {
+      // 「最後に OFF でなかった行」= ファームが POWER_OFF でなく、かつ LOW 以上(LOW があれば)の最新 1 行
+      let q = supabase.from('readings').select('measured_at').eq('machine_id', r.machine.id).neq('fw_state', 'POWER_OFF')
+      if (r.machine.low_a !== null && r.machine.low_a !== undefined) q = q.gte('avg_a', r.machine.low_a)
+      const { data } = await q.order('measured_at', { ascending: false }).limit(1)
+      if (data && data[0]) out[r.machine.id] = data[0].measured_at
+    } catch (e) { /* 読めなければ出さないだけ */ }
+  }))
+  return out
 }
 
 // 偽データ: JSON の minutes_ago(何分前か)を「今」から引いて、本物と同じ形にする。

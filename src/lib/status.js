@@ -6,7 +6,7 @@
 //     POWER_OFF または 平均 < LOW       → off  「電源OFF」
 //     HIGH_LOAD                        → high 「高負荷」
 //     LOW_LOAD                         → low  「通電」
-//     UNKNOWN                          → none 「不明」
+//     それ以外(UNKNOWN など)           → none 「判定不能」(届いているが状態が読めない・2026-09-18 ①②試作)
 //
 //   無通信: 最終データ(measured_at)から STALE_MIN 分以上たっていたら赤枠。
 //     GAS の checkHeartbeat は STALE_THRESHOLD_MINUTES = 10 を「>」で比べ、10分おきに走るので
@@ -24,7 +24,36 @@ export function stateOf(machine, latest) {
   }
   if (latest.fw_state === 'HIGH_LOAD') return { cls: 'high', text: '高負荷' }
   if (latest.fw_state === 'LOW_LOAD')  return { cls: 'low',  text: '通電' }
-  return { cls: 'none', text: '不明' }
+  return { cls: 'none', text: '判定不能' }
+}
+
+// 判定不能か(届いているのに状態が読めない)。データなしは含めない
+export function isUndecidable(machine, latest) {
+  return !!latest && stateOf(machine, latest).cls === 'none'
+}
+
+// 「HH:MM から(N分)」の文。開始時刻 iso と今から、経過を分で出す(2026-09-18 ①②試作)
+export function sinceText(iso, now = Date.now()) {
+  if (!iso) return ''
+  const m = Math.floor((now - new Date(iso).getTime()) / 60000)
+  let d
+  if (m < 1) d = '1分未満'
+  else if (m < 60) d = m + '分'
+  else if (m < 60 * 24) d = Math.floor(m / 60) + '時間' + (m % 60) + '分'
+  else d = Math.floor(m / 1440) + '日'
+  return clockText(iso) + ' から(' + d + ')'
+}
+
+// 画面①の上に出す「いま確認すること」。決定(2026-09-18 高満氏): 無通信と判定不能だけ。電源OFF は出さない。
+// 返り値: [{ machine, kind: 'stale'|'undecidable', since: iso }] を開始が古い順に
+export function checkList(rows, now = Date.now()) {
+  const out = []
+  for (const r of rows) {
+    if (!r.latest) continue                                   // データなし(GAS 直送)は別枠で理由を出す
+    if (isStale(r.latest, now)) out.push({ machine: r.machine, kind: 'stale', since: r.latest.measured_at })
+    else if (isUndecidable(r.machine, r.latest)) out.push({ machine: r.machine, kind: 'undecidable', since: r.latest.measured_at })
+  }
+  return out.sort((a, b) => new Date(a.since) - new Date(b.since))
 }
 
 // 最終データから何分たったか(整数)。データなしは null

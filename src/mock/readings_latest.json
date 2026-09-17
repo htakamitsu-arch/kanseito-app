@@ -1,7 +1,7 @@
 [
   { "machine_id": "m-mu4000v",   "minutes_ago": 1,  "fw_state": "HIGH_LOAD", "avg_a": 15.8, "max_a": 22.1, "sigma": 0.42 },
   { "machine_id": "m-okk",       "minutes_ago": 2,  "fw_state": "LOW_LOAD",  "avg_a": 6.4,  "max_a": 6.9,  "sigma": 0.05 },
-  { "machine_id": "m-dnm650",    "minutes_ago": 1,  "fw_state": "POWER_OFF", "avg_a": 0.0,  "max_a": 0.1,  "sigma": 0.01 },
+  { "machine_id": "m-dnm650",    "minutes_ago": 1,  "fw_state": "POWER_OFF", "avg_a": 0.0,  "max_a": 0.1,  "sigma": 0.01, "off_since_minutes_ago": 190 },
   { "machine_id": "m-u32k",      "minutes_ago": 15, "fw_state": "LOW_LOAD",  "avg_a": 11.3, "max_a": 11.6, "sigma": 0.03 },
   { "machine_id": "m-mb46",      "minutes_ago": 1,  "fw_state": "LOW_LOAD",  "avg_a": 4.7,  "max_a": 5.2,  "sigma": 0.08 },
   { "machine_id": "m-zv5400",    "minutes_ago": 2,  "fw_state": "HIGH_LOAD", "avg_a": 8.3,  "max_a": 12.4, "sigma": 0.51 },
