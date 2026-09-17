@@ -54,6 +54,8 @@ function n(v, digits = 1) {
   return Number(v).toFixed(digits)
 }
 function pct(v) { return (v === null || v === undefined || v === '') ? '−' : Math.round(v) + '%' }
+// 暖機は時間(h)で届くが、画面では分で出す(高満氏 2026-09-17 指示)
+function mins(v) { return (v === null || v === undefined || v === '') ? '−' : Math.round(v * 60) }
 function diff(v) {
   if (v === null || v === undefined || v === '') return '−'
   const x = Number(v)
@@ -99,7 +101,7 @@ function writtenText(r) {
           <th>加工<small>h</small></th>
           <th>加工率</th>
           <th>段取り<small>h</small></th>
-          <th>暖機<small>h</small></th>
+          <th>暖機<small>分</small></th>
           <th>加工 前日比<small>h</small></th>
           <th>記録<small>件</small></th>
           <th>記録<small>h</small></th>
@@ -118,7 +120,7 @@ function writtenText(r) {
             <span class="barnum">{{ pct(r.cut_pct) }}</span>
           </td>
           <td>{{ n(r.setup_h) }}</td>
-          <td>{{ n(r.warmup_h) }}</td>
+          <td>{{ mins(r.warmup_h) }}</td>
           <td :class="{ up: r.cut_diff_h > 0, down: r.cut_diff_h < 0 }">{{ diff(r.cut_diff_h) }}</td>
           <td>{{ r.rec_count === null || r.rec_count === undefined ? '−' : r.rec_count }}</td>
           <td>{{ n(r.rec_h) }}</td>
@@ -134,7 +136,7 @@ function writtenText(r) {
     <div v-for="r in notes" :key="'n' + r.machine_name" class="notline">
       <b>{{ r.machine_name }}</b>: {{ r.note }}
     </div>
-    通電 = 電源が入っていた時間。加工 + 段取り + 暖機 = 通電(重ならないように数えています)。<br />
+    通電 = 電源が入っていた時間。加工 + 段取り + 暖機 = 通電(重ならないように数えています。暖機だけ分で出しています)。<br />
     加工 前日比 は「前の業務日の加工(h)」との差。記録÷加工 は現場の加工記録(9/8 の週で入力停止)との比。<br />
     全社の行は各機械の中央値です(合計は通電の長い機械に引っ張られるため)。★のついた機械には備考があります(すぐ上に出しています)。
   </div>
