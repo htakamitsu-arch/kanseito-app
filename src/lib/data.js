@@ -36,19 +36,25 @@ export async function loadNowStatus() {
   if (IS_MOCK) return mockNowStatus()
 
   // 本物: 2つの表を読んで、machine_id で突き合わせる
+  // show_on_screen = 「現場向け画面①に出すか」の旗(2026-09-19 差分案_画面_データなしを無くす)。
+  //   false の機械(例: 2号機の実験係 shizuoka。同じ静岡を 3号機 ch1 が公式に測っている)は一覧から外す。
+  //   ★この列は Supabase に先に足してから公開する(無い列を読むと「machines を読めません」になる)
   const [m, r] = await Promise.all([
-    supabase.from('machines').select('id, name, label, low_a, high_a').order('name'),
+    supabase.from('machines').select('id, name, label, low_a, high_a, show_on_screen').order('name'),
     supabase.from('v_latest_readings').select('machine_id, measured_at, received_at, fw_state, avg_a, max_a, sigma'),
   ])
   if (m.error) throw new Error('machines を読めません: ' + m.error.message)
   if (r.error) throw new Error('v_latest_readings を読めません: ' + r.error.message)
 
   const latestOf = new Map((r.data || []).map(x => [x.machine_id, x]))
-  return (m.data || []).map(machine => ({
+  return (m.data || []).filter(isShown).map(machine => ({
     machine,
-    latest: latestOf.get(machine.id) || null,   // まだ1行も無い機械は null
+    latest: latestOf.get(machine.id) || null,   // 直近31日に1行も無い機械は null(画面は「無通信」として出す)
   }))
 }
+
+// 画面①に出す機械か。旗が false のときだけ外す(旗が無い・null は「出す」= 新しい機械を黙って隠さない)
+function isShown(machine) { return machine.show_on_screen !== false }
 
 // 電源OFF の機械について「いつから OFF か」を返す。{ machine_id: iso } 。
 // 本物: readings から「最後に POWER_OFF 以外だった行」を 1 行ずつ引く(9/9 の RLS で直近 31 日は読める)。
@@ -95,7 +101,7 @@ function mockNowStatus() {
       sigma: row.sigma,
     })
   }
-  return mockMachines.map(machine => ({ machine, latest: latestOf.get(machine.id) || null }))
+  return mockMachines.filter(isShown).map(machine => ({ machine, latest: latestOf.get(machine.id) || null }))
 }
 
 // ---------------------------------------------------------------- 画面②「日報」

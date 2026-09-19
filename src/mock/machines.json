@@ -1,11 +1,11 @@
 [
-  { "id": "m-mu4000v",   "name": "mu4000v",   "label": "オークマ 5軸 MU-4000V",        "low_a": 1.2,  "high_a": 14.4 },
-  { "id": "m-okk",       "name": "okk",       "label": "OKK VM4III",                   "low_a": 1.2,  "high_a": 7.0 },
-  { "id": "m-dnm650",    "name": "dnm650",    "label": "ドゥーサン DNM650",             "low_a": 1.2,  "high_a": 3.0 },
-  { "id": "m-u32k",      "name": "u32k",      "label": "牧野フライス U32K ワイヤー放電", "low_a": 3.0,  "high_a": 11.5 },
-  { "id": "m-mb46",      "name": "mb46",      "label": "オークマ MB-46VAE",             "low_a": 2.0,  "high_a": 4.0 },
-  { "id": "m-zv5400",    "name": "zv5400",    "label": "コマツ ZV5400",                 "low_a": 2.3,  "high_a": 7.4 },
-  { "id": "m-kensaku",   "name": "kensaku",   "label": "岡本工作機械 研削盤",           "low_a": 2.0,  "high_a": 8.15 },
-  { "id": "m-shizuoka2", "name": "shizuoka2", "label": "静岡鐵工所 B-12VG (並走ch)",    "low_a": null, "high_a": null },
-  { "id": "m-shizuoka",  "name": "shizuoka",  "label": "静岡鐵工所 B-12VG (2号機・GAS直送)", "low_a": null, "high_a": null }
+  { "id": "m-mu4000v",   "name": "mu4000v",   "label": "オークマ 5軸 MU-4000V",        "low_a": 1.2,  "high_a": 14.4, "show_on_screen": true },
+  { "id": "m-okk",       "name": "okk",       "label": "OKK VM4III",                   "low_a": 1.2,  "high_a": 7.0, "show_on_screen": true },
+  { "id": "m-dnm650",    "name": "dnm650",    "label": "ドゥーサン DNM650",             "low_a": 1.2,  "high_a": 3.0, "show_on_screen": true },
+  { "id": "m-u32k",      "name": "u32k",      "label": "牧野フライス U32K ワイヤー放電", "low_a": 3.0,  "high_a": 11.5, "show_on_screen": true },
+  { "id": "m-mb46",      "name": "mb46",      "label": "オークマ MB-46VAE",             "low_a": 2.0,  "high_a": 4.0, "show_on_screen": true },
+  { "id": "m-zv5400",    "name": "zv5400",    "label": "コマツ ZV5400",                 "low_a": 2.3,  "high_a": 7.4, "show_on_screen": true },
+  { "id": "m-kensaku",   "name": "kensaku",   "label": "岡本工作機械 研削盤",           "low_a": 2.0,  "high_a": 8.15, "show_on_screen": true },
+  { "id": "m-shizuoka2", "name": "shizuoka2", "label": "静岡鐵工所 B-12VG",    "low_a": null, "high_a": null, "show_on_screen": true },
+  { "id": "m-shizuoka",  "name": "shizuoka",  "label": "静岡鐵工所 B-12VG (2号機・GAS直送)", "low_a": null, "high_a": null, "show_on_screen": false }
 ]

@@ -1,11 +1,11 @@
 <!-- ============================================================================
-  画面①「今の状態」。9台のカード。
+  画面①「今の状態」。機械ごとのカード(machines.show_on_screen が false の機械は出さない)。
     ・機械名(表示名 + ファームの名前)
-    ・状態の色: 電源OFF(灰)/ 通電(黄)/ 高負荷(緑)/ データなし(薄灰)
+    ・状態の色: 電源OFF(灰)/ 通電(黄)/ 高負荷(緑)/ 判定不能・無通信(薄灰)
         ← ファームの fw_state と LOW(machines.low_a)だけで決める。加工/段取りの判定はしない
     ・平均電流(A)
     ・最終データから何分たったか
-    ・11分以上届いていなければ赤い枠(GAS の checkHeartbeat と同じ)
+    ・11分以上届いていなければ赤い枠(GAS の checkHeartbeat と同じ)。直近31日に1行も無い機械も赤い枠(無通信)
 
   データの取り方は lib/data.js、色の決まりは lib/status.js。この画面は「並べて出す」だけ。
   60秒ごとに読み直す(1分1行のデータなので、それより速くしても意味がない)。
@@ -13,7 +13,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { loadNowStatus, loadEnvironment, loadOffSince } from '../lib/data.js'
-import { stateOf, isStale, isUndecidable, agoText, ampText, clockText, sinceText, checkList, STALE_MIN } from '../lib/status.js'
+import { stateOf, isStale, isUndecidable, agoText, ampText, clockText, sinceText, checkList, STALE_MIN, NEVER_TEXT } from '../lib/status.js'
 
 const rows = ref([])          // [{ machine, latest }]
 const env = ref(null)         // 工場の温湿度(センサーが無ければ null のまま)
@@ -45,8 +45,6 @@ function staleCount() { return rows.value.filter(r => isStale(r.latest, now.valu
 
 // ①「いま確認すること」(無通信・判定不能だけ。開始が古い順)
 function checks() { return checkList(rows.value, now.value) }
-// データなしの機械(GAS 直送など、この画面に届く仕組みが無い)。要確認には数えない
-function noData() { return rows.value.filter(r => !r.latest) }
 function kindText(k) { return k === 'stale' ? '無通信' : '判定不能' }
 </script>
 
@@ -63,14 +61,11 @@ function kindText(k) { return k === 'stale' ? '無通信' : '判定不能' }
        0 台のときも必ず 1 行出す(空欄だと「黙って失敗」と区別がつかない) -->
   <div class="check" :class="{ none: checks().length === 0 }" v-if="!error && rows.length">
     <div class="check-h">いま確認すること<span v-if="checks().length"> {{ checks().length }}件</span></div>
-    <div v-if="checks().length === 0" class="check-ok">ありません — 届いている機械はすべて状態が読めています</div>
+    <div v-if="checks().length === 0" class="check-ok">ありません — すべての機械が届いていて、状態が読めています</div>
     <div v-for="c in checks()" :key="c.machine.id" class="check-row" :class="c.kind">
       <span class="check-name">{{ c.machine.label || c.machine.name }}</span>
       <span class="check-kind">{{ kindText(c.kind) }}</span>
-      <span class="check-since">{{ sinceText(c.since, now) }}</span>
-    </div>
-    <div v-for="r in noData()" :key="r.machine.id" class="check-note">
-      {{ r.machine.label || r.machine.name }}: データなし。この画面に届く仕組みがありません(GAS 直送)。異常ではありません
+      <span class="check-since">{{ c.since ? sinceText(c.since, now) : NEVER_TEXT }}</span>
     </div>
   </div>
 
@@ -99,13 +94,14 @@ function kindText(k) { return k === 'stale' ? '無通信' : '判定不能' }
       <div class="name">{{ r.machine.label || r.machine.name }}<span class="code">{{ r.machine.name }}</span></div>
       <div class="state" :class="stateOf(r.machine, r.latest).cls">{{ stateOf(r.machine, r.latest).text }}</div>
       <div class="amp">{{ ampText(r.latest) }}<small>A 平均</small></div>
-      <!-- ② 文と時刻で区別する(2026-09-18 試作): 無通信 / 判定不能 / 電源OFF はいつから、データなしは理由 -->
+      <!-- ② 文と時刻で区別する(2026-09-18 試作): 無通信 / 判定不能 / 電源OFF はいつから。
+           最新の1行が無い機械も無通信(2026-09-19: 「異常ではありません」の文はやめた) -->
       <div class="last">
-        <template v-if="isStale(r.latest, now)">無通信 {{ sinceText(r.latest.measured_at, now) }}届いていません</template>
+        <template v-if="!r.latest">無通信 {{ NEVER_TEXT }}</template>
+        <template v-else-if="isStale(r.latest, now)">無通信 {{ sinceText(r.latest.measured_at, now) }}届いていません</template>
         <template v-else-if="isUndecidable(r.machine, r.latest)">判定不能 {{ sinceText(r.latest.measured_at, now) }}— 届いていますが状態が読めません</template>
         <template v-else-if="stateOf(r.machine, r.latest).cls === 'off' && offSince[r.machine.id]">電源OFF {{ sinceText(offSince[r.machine.id], now) }}</template>
-        <template v-else-if="r.latest">最終データ {{ agoText(r.latest, now) }}({{ clockText(r.latest.measured_at) }})</template>
-        <template v-else>データなし: この画面に届く仕組みがありません(GAS 直送)。異常ではありません</template>
+        <template v-else>最終データ {{ agoText(r.latest, now) }}({{ clockText(r.latest.measured_at) }})</template>
       </div>
     </div>
   </div>
@@ -115,8 +111,8 @@ function kindText(k) { return k === 'stale' ? '無通信' : '判定不能' }
       <span style="background: var(--off); color: #fff">電源OFF</span>
       <span style="background: var(--low)">通電</span>
       <span style="background: var(--high); color: #fff">高負荷</span>
-      <span style="background: var(--none)">判定不能 / データなし</span>
-      <span style="border: 2px solid var(--alert)">赤枠 = {{ STALE_MIN }}分以上無通信</span>
+      <span style="background: var(--none)">判定不能</span>
+      <span style="border: 2px solid var(--alert)">赤枠 = 無通信({{ STALE_MIN }}分以上 届いていない)</span>
     </div>
     色はファームの状態と LOW だけで決めています。「加工 / 段取り / 暖機」の判定は日報(②)とカルテ(③)で出します。
     60秒ごとに自動で読み直します。
